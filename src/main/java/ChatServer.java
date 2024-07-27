@@ -31,6 +31,7 @@ public class ChatServer {
         private Socket clientSocket;
         private ObjectInputStream inputStream;
         private ObjectOutputStream outputStream;
+        private String username;
 
         public ClientHandler(Socket clientSocket) {
             this.clientSocket = clientSocket;
@@ -44,7 +45,48 @@ public class ChatServer {
 
         @Override
         public void run() {
-            // Aquí manejaremos la comunicación con el cliente en el próximo commit
+            try {
+                // Pedir al cliente que ingrese un nombre de usuario
+                outputStream.writeObject("Enter your username: ");
+                this.username = (String) inputStream.readObject();
+                broadcast(username + " joined the chat.");
+
+                while (true) {
+                    // Leer mensaje del cliente
+                    String message = (String) inputStream.readObject();
+
+                    // Manejo del comando para salir
+                    if (message.equalsIgnoreCase("exit")) {
+                        broadcast(username + " left the chat.");
+                        break;
+                    }
+
+                    // Enviar el mensaje a todos los clientes conectados con el nombre del remitente
+                    broadcast(username + ": " + message);
+                }
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            } finally {
+                // Remover el cliente al desconectarse
+                clients.remove(this);
+                try {
+                    clientSocket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        private void broadcast(String message) {
+            // Enviar el mensaje a todos los clientes conectados
+            for (ClientHandler client : clients) {
+                try {
+                    client.outputStream.writeObject(message);
+                    client.outputStream.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 }
