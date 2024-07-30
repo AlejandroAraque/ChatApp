@@ -2,18 +2,38 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
 
 public class ChatClient extends JFrame {
+    private static final String SERVER_HOST = "localhost";
+    private static final int SERVER_PORT = 5555;
+
     private JTextArea chatArea;
     private JTextField messageField;
+    private ObjectOutputStream outputStream;
+    private String username;
 
     public ChatClient() {
-        setTitle("Chat Client");
+        this.username = JOptionPane.showInputDialog("Enter your username:");
+
+        setTitle("Chat Client - " + username);
         setSize(400, 300);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
         initializeUI();
+
+        try {
+            Socket socket = new Socket(SERVER_HOST, SERVER_PORT);
+            outputStream = new ObjectOutputStream(socket.getOutputStream());
+
+            // Enviar el nombre de usuario al servidor
+            outputStream.writeObject(username);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void initializeUI() {
@@ -26,7 +46,7 @@ public class ChatClient extends JFrame {
         messageField.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Enviar mensaje (a implementar en futuros commits)
+                sendMessage();
             }
         });
 
@@ -34,7 +54,7 @@ public class ChatClient extends JFrame {
         sendButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Enviar mensaje (a implementar en futuros commits)
+                sendMessage();
             }
         });
 
@@ -42,6 +62,17 @@ public class ChatClient extends JFrame {
         add(scrollPane, BorderLayout.CENTER);
         add(messageField, BorderLayout.SOUTH);
         add(sendButton, BorderLayout.EAST);
+    }
+
+    private void sendMessage() {
+        try {
+            String message = messageField.getText();
+            outputStream.writeObject(message);
+            outputStream.flush();
+            messageField.setText("");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void main(String[] args) {
