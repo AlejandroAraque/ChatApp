@@ -3,6 +3,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
@@ -31,6 +32,8 @@ public class ChatClient extends JFrame {
 
             // Enviar el nombre de usuario al servidor
             outputStream.writeObject(username);
+
+            new Thread(new ClientListener(socket)).start();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -72,6 +75,33 @@ public class ChatClient extends JFrame {
             messageField.setText("");
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private class ClientListener implements Runnable {
+        private Socket socket;
+        private ObjectInputStream inputStream;
+
+        public ClientListener(Socket socket) {
+            this.socket = socket;
+            try {
+                this.inputStream = new ObjectInputStream(socket.getInputStream());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public void run() {
+            try {
+                while (true) {
+                    // Leer mensaje del servidor y mostrarlo en el área de chat
+                    String message = (String) inputStream.readObject();
+                    chatArea.append(message + "\n");
+                }
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
         }
     }
 
